@@ -458,6 +458,7 @@ img{-webkit-user-drag:none}
     <div class="sheet-body set">
       <div class="set-row"><span>계정</span><b id="setAcc">게스트</b></div>
       <div class="set-row"><span>보석</span><b id="setGems">💎 0개</b></div>
+      <div class="set-row"><span>진행</span><b id="setProg">-</b></div>
       <div class="set-row"><span>닉네임</span><b id="setNick">-</b><button class="btn sm" id="btnNickEdit">바꾸기</button></div>
       <div class="set-row"><span>진행 옮기기</span><button class="btn sm" id="btnMove">🚚 코드로 옮기기</button></div>
       <div class="set-row" id="setSaveRow"><span>진행 상황</span><button class="btn sm" id="btnSaveAcc">계정에 지금 저장</button><button class="btn sm" id="btnLoadAcc">계정에서 불러오기</button></div>
@@ -2989,11 +2990,7 @@ function openRank(){ $('rankModal').hidden = false; renderRank(); }
 function renderRank(){
   const list = $('rankList'), pod = $('rankPodium'), note = $('rankNote'), me = $('rankMe');
   list.innerHTML = ''; pod.innerHTML = ''; pod.hidden = true;
-  // 직접 등록할 수 없는 사람은 기록 코드 보내기, 관리자는 친구 기록 등록
-  const canPost = !!(ACC.db && ACC.id && ACC.canWrite);
-  $('rankRelay').hidden = HOSTED ? !isAdmin() : canPost && !isAdmin();
-  $('btnRelay').textContent = isAdmin() && ACC.db ? '📥 친구 기록 코드 등록하기' : '📮 내 기록을 코드로 보내기';
-  $('relayHint').textContent = isAdmin() && ACC.db ? (HOSTED ? 'Claude 링크에서 친구가 보낸 기록 코드도 여기서 등록할 수 있어요.' : '공개 링크로 들어온 친구는 직접 랭킹에 쓸 수 없어요. 친구가 보낸 기록 코드를 여기서 등록해 주세요.') : !ACC.db ? '클로드 계정으로 로그인하면 랭킹에 바로 올라가요. 로그인해도 안 되면 기록 코드를 만들어 게임 주인에게 보내 주세요.' : '이 링크에서는 랭킹에 직접 올라갈 수 없어요. 기록 코드를 만들어 게임 주인에게 보내면 대신 올려 줘요.';
+  $('rankRelay').hidden = true; // 랭킹 창의 기록 코드 버튼은 쓰지 않아요 (인터넷 주소판은 자동 등록)
   // 인터넷 주소판은 로그인하지 않아도 랭킹을 볼 수 있어요 (읽기는 누구나)
   if (!ACC.db && HOSTED && !ACC.rdb && !ACC.rdbLoading){ ACC.rdbLoading = true; window.claude.use('db').then(db => { ACC.rdbLoading = false; if (db && !ACC.db){ ACC.rdb = db; subscribeRanks(db); } renderRank(); }); }
   if (!ACC.db && !ACC.rdb){
@@ -3011,7 +3008,7 @@ function renderRank(){
   list.hidden = rows.length <= 3;
   const mine = rows.find(r => isMine(r.id));
   if (mine && mine.rank > 50){ me.hidden = false; me.innerHTML = ''; me.appendChild(rankLi(mine)); }
-  else if (!mine){ me.hidden = false; me.innerHTML = ''; const d = document.createElement('div'); d.className = 'rme-empty'; d.textContent = ACC.name ? '내 기록: 아직 클리어한 스테이지가 없어요' : (!ACC.db ? ACCT + ' 계정으로 로그인하면 내 기록이 자동으로 올라가요' : ACC.canWrite && ACC.id ? '닉네임을 정하면 랭킹에 참여해요' : '보기 전용 링크라 직접 등록은 안 돼요 · 아래에서 기록 코드를 보내 주세요'); me.appendChild(d); }
+  else if (!mine){ me.hidden = false; me.innerHTML = ''; const d = document.createElement('div'); d.className = 'rme-empty'; d.textContent = ACC.name ? '내 기록: 아직 클리어한 스테이지가 없어요' : (!ACC.db ? ACCT + ' 계정으로 로그인하면 내 기록이 자동으로 올라가요' : ACC.canWrite && ACC.id ? '닉네임을 정하면 랭킹에 참여해요' : '보기 전용 링크라 랭킹에 등록할 수 없어요'); me.appendChild(d); }
   else me.hidden = true;
   $('rankCount').textContent = '참가한 토벌대원 ' + ACC.players.length + '명 · 기록 ' + rows.length + '명' + (mine ? ' · 내 순위 ' + mine.rank + '위' : '');
 }
@@ -3157,6 +3154,7 @@ function renderSettings(){
   $('setAcc').textContent = on ? (ACC.canWrite ? ACCT + ' 계정으로 로그인됨' : ACCT + ' 계정 (보기 전용 링크)') : '게스트 (이 브라우저에만 저장)';
   $('setNick').textContent = on ? (ACC.name || '아직 없음') : '-';
   $('setGems').textContent = '💎 ' + gemText() + (isAdmin() ? ' (관리자)' : '개');
+  $('setProg').textContent = '스테이지 ' + Math.min(SAVE.unlocked || 1, STAGES.length) + '까지 열림 · 최고 클리어 ' + (myMaxStage() ? '스테이지 ' + myMaxStage() : '없음');
   $('btnNickEdit').textContent = nickFree() ? '바꾸기 (1회 무료)' : '바꾸기 💎' + PRICE.nick;
   $('btnNickEdit').hidden = !(on && ACC.canWrite);
   $('setSaveRow').hidden = !(on && ACC.canWrite);
