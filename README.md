@@ -2,5 +2,5 @@
 
 먼작귀 친구 5명이 함께 싸우는 서바이벌 게임이에요.
 
-- 바로 하기: https://mtbtrickers-ctrl.github.io/
+- 바로 하기: https://09jun4.github.io/chiikawa-tobatsu/
 - 구글 계정으로 로그인하면 진행 상황이 저장되고, 클리어한 최고 스테이지로 랭킹에 자동으로 올라가요.
