@@ -1,2 +1,6 @@
-# mtbtrickers-ctrl.github.io
-For chiikawa tobatsu
+# 치이카와 토벌 대작전
+
+먼작귀 친구 5명이 함께 싸우는 서바이벌 게임이에요.
+
+- 바로 하기: https://mtbtrickers-ctrl.github.io/
+- 구글 계정으로 로그인하면 진행 상황이 저장되고, 클리어한 최고 스테이지로 랭킹에 자동으로 올라가요.
