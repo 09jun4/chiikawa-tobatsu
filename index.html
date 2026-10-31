@@ -299,6 +299,18 @@ img{-webkit-user-drag:none}
 .res-grid b{font-weight:400;font-size:21px;font-variant-numeric:tabular-nums}
 .row{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
 .count{align-self:center;width:96px;height:96px;border-radius:50%;border:4px solid var(--ink);background:var(--usa);display:grid;place-items:center;font-size:52px;line-height:1;box-shadow:0 5px 0 var(--ink);font-variant-numeric:tabular-nums}
+.dmg-stats{margin-top:auto;gap:5px;padding:10px 12px;max-height:42%;overflow-y:auto;flex-shrink:0}
+#pauseOv h2{margin-top:auto}
+.ds-head{display:flex;align-items:baseline;gap:8px;font-size:15px;margin-bottom:2px}
+.ds-head b{font-weight:400}
+.ds-head span{margin-left:auto;font-size:13px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.ds-row{display:grid;grid-template-columns:1fr auto 46px;column-gap:8px;row-gap:2px;align-items:baseline;font-size:12.5px}
+.ds-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-val{color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.ds-pct{text-align:right;font-variant-numeric:tabular-nums;font-size:13.5px}
+.ds-bar{grid-column:1/-1;height:6px;border-radius:3px;background:rgba(61,43,43,.12);overflow:hidden}
+.ds-bar i{display:block;height:100%;background:var(--blush-deep);border-radius:3px}
+.ds-empty{margin:0;text-align:center;font-size:13px;color:var(--ink-soft)}
 .quote{margin:0;text-align:center;font-family:var(--hand);font-weight:700;font-size:19px}
 
 /* ===== 로딩 (첨부 사진 랜덤) ===== */
@@ -529,6 +541,7 @@ img{-webkit-user-drag:none}
     <p class="quote" id="pauseQuote">"어떻게든 될 거야~!"</p>
     <div class="row"><button class="btn pink" id="btnResume">계속 토벌하기</button><button class="btn" id="btnQuit">메인 화면으로</button></div>
   </div>
+  <div class="panel dmg-stats" id="pauseDmg"></div>
 </div>
 
 <div class="over" id="resultOv" hidden>
@@ -1524,11 +1537,13 @@ function updateWeapons(dt){
       else if (m.char === 'momonga'){ momongaBeam(m, lv); m.tm = (.46 - .02 * (lv - 1)) * cdm; }
     }
   }
-  CUR_SRC = 'sub';
+  CUR_SRC = 'book';
   if (P.w.book) books(dt, cdm);
+  CUR_SRC = 'guitar';
   if (P.w.guitar){ P.tm.guitar -= dt; if (P.tm.guitar <= 0){ guitar(P.w.guitar); P.tm.guitar = (2.8 - .24 * P.w.guitar) * cdm; } }
   if (P.w.ramen){ P.tm.ramen -= dt; if (P.tm.ramen <= 0){ ramen(P.w.ramen); P.tm.ramen = (3.4 - .26 * P.w.ramen) * cdm; } }
   if (P.w.bomb){ P.tm.bomb -= dt; if (P.tm.bomb <= 0){ bombs(P.w.bomb); P.tm.bomb = (2.5 - .16 * P.w.bomb) * cdm; } }
+  CUR_SRC = 'sub';
 }
 function hasTarget(m, R){ return !!nearestEnemy(m.x, m.y, R); }
 function chiikawaPoke(m, lv){
@@ -1617,12 +1632,12 @@ function guitar(lv){
 function ramen(lv){
   const P = G.P; const tg = nearestEnemy(P.x, P.y, 320);
   const x = tg ? tg.x : P.x + rand(-160, 160), y = tg ? tg.y : P.y + rand(-160, 160);
-  G.hazards.push({ kind:'ramen', x, y, r: 46 + 7 * lv, t: 0, life: 2.6 + .25 * lv, tick: 0, dmg: 5 + 3 * lv });
+  G.hazards.push({ src:'ramen', kind:'ramen', x, y, r: 46 + 7 * lv, t: 0, life: 2.6 + .25 * lv, tick: 0, dmg: 5 + 3 * lv });
   G.fx.push({ kind:'splash', x, y, t: 0, life: .35 });
 }
 function bombs(lv){
   const P = G.P, n = 1 + Math.floor(lv / 2);
-  for (let i = 0; i < n; i++) G.hazards.push({ kind:'bomb', x: P.x + rand(-viewHW() * .9, viewHW() * .9), y: P.y + rand(-220, 220), t: 0, fuse: .75, r: 62 + 7 * lv, dmg: 24 + 10 * lv, done: false });
+  for (let i = 0; i < n; i++) G.hazards.push({ src:'bomb', kind:'bomb', x: P.x + rand(-viewHW() * .9, viewHW() * .9), y: P.y + rand(-220, 220), t: 0, fuse: .75, r: 62 + 7 * lv, dmg: 24 + 10 * lv, done: false });
 }
 
 /* ---------- 25. 필살기 (각자 게이지) ---------- */
@@ -3501,7 +3516,23 @@ function pauseGame(){
   if (state !== 'play') return;
   state = 'paused'; const m = pick(G.M);
   $('pauseQuote').textContent = CHARS[m.char].name + ': "' + pick(CHARS[m.char].lines.concat(['잠깐 쉬자…'])) + '"';
-  $('pauseOv').hidden = false; keys.clear(); joy.on = false;
+  renderDmgStats(); $('pauseOv').hidden = false; keys.clear(); joy.on = false;
+}
+// 일시정지 화면 아래: 이번 판 스킬별 누적 대미지와 전체 중 비율
+function dmgLabel(k){
+  if (CHARS[k]) return CHARS[k].name + ' · ' + CHARS[k].atk;
+  const c = k.replace(/_ult$/, ''); if (k.endsWith('_ult') && CHARS[c]) return CHARS[c].name + ' · ' + CHARS[c].ult.replace(/"/g, '') + ' (필살기)';
+  if (UPGRADES[k]) return UPGRADES[k].name;
+  return '그 밖의 대미지';
+}
+function renderDmgStats(){
+  const box = $('pauseDmg'), rows = Object.entries(G.dmgBy || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((s, [, v]) => s + v, 0), fmt = v => Math.round(v).toLocaleString('ko-KR');
+  if (!total){ box.innerHTML = '<p class="ds-empty">아직 준 대미지가 없어요</p>'; return; }
+  box.innerHTML = `<div class="ds-head"><b>스킬별 누적 대미지</b><span>합계 ${fmt(total)}</span></div>` + rows.map(([k, v]) => {
+    const pct = v / total * 100;
+    return `<div class="ds-row"><span class="ds-name">${dmgLabel(k)}</span><span class="ds-val">${fmt(v)}</span><span class="ds-pct">${pct >= 10 ? pct.toFixed(0) : pct.toFixed(1)}%</span><span class="ds-bar"><i style="width:${pct.toFixed(1)}%"></i></span></div>`;
+  }).join('');
 }
 function resumeGame(){ if (state !== 'paused') return; $('pauseOv').hidden = true; state = 'play'; }
 function onCloudLoaded(){ if (state === 'menu') buildMenu(); updateMusicUI(); if (!SAVE.music) stopMusic(); }
